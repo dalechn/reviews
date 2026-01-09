@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Product model for Shopify products
+model Product {
+  id          String   @id @default(cuid())
+  shopifyId   String   @unique // Shopify product ID
+  title       String
+  handle      String   @unique
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reviews     Review[]
+
+  @@map("products")
+}
+
+// Customer model for Shopify customers
+model Customer {
+  id        String   @id @default(cuid())
+  shopifyId String   @unique // Shopify customer ID
+  email     String?
+  firstName String?
+  lastName  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reviews   Review[]
+
+  @@map("customers")
+}
+
+// Review model for product reviews
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  customerId  String
+  rating      Int      // 1-5 star rating
+  title       String?
+  content     String
+  verified    Boolean  @default(false) // Verified purchase
+  published   Boolean  @default(true)
+  helpful     Int      @default(0) // Number of helpful votes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}

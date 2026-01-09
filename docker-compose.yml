@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:17          # 想用其他版本就改成 16、15、14... 都可以
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 46647451
+      POSTGRES_DB: shopify_reviews     # 自动创建这个数据库
+    ports:
+      - "5432:5432"             # 如果本机已有 postgres，可改成 5433:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start"
+
+volumes:
+  postgres_data:
