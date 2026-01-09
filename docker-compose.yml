@@ -17,20 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
-      NODE_ENV: production
-    depends_on:
-      db:
-        condition: service_healthy
-    command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start"
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
+  #     NODE_ENV: production
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start"
 
 volumes:
   postgres_data:

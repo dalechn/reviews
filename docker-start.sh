@@ -29,13 +29,17 @@ echo "✅ Docker 和 docker-compose 已安装且运行正常"
 
 echo "🐳 构建并启动所有服务..."
 echo "选择模式："
-echo "1) 生产模式 (默认 - 预构建应用)"
-echo "2) 开发模式 (热重载，适合开发)"
-read -p "请选择 (1/2): " mode
+echo "1) 生产模式 (默认 - 预构建应用 + 数据库)"
+echo "2) 开发模式 (热重载，适合开发 + 数据库)"
+echo "3) 仅应用模式 (只运行 Next.js 应用，需先启动数据库)"
+read -p "请选择 (1/2/3): " mode
 
 if [ "$mode" = "2" ]; then
     echo "启动开发模式..."
     docker-compose -f docker-compose.dev.yml up --build -d
+elif [ "$mode" = "3" ]; then
+    echo "启动仅应用模式..."
+    docker-compose -f docker-compose.app.yml up --build -d
 else
     echo "启动生产模式..."
     docker-compose up --build -d
@@ -49,15 +53,29 @@ echo "🎉 启动完成！"
 echo ""
 echo "📋 服务信息："
 echo "1. Next.js 应用: http://localhost:3000"
-echo "2. PostgreSQL 数据库: localhost:5432"
-echo "   - 用户: admin"
-echo "   - 密码: 46647451"
-echo "   - 数据库: shopify_reviews"
+
+if [ "$mode" != "3" ]; then
+    echo "2. PostgreSQL 数据库: localhost:5432"
+    echo "   - 用户: admin"
+    echo "   - 密码: 46647451"
+    echo "   - 数据库: shopify_reviews"
+fi
 echo ""
 echo "🔧 管理命令："
-echo "  查看服务状态: docker-compose ps"
-echo "  查看日志: docker-compose logs -f"
-echo "  停止服务: docker-compose down"
-echo "  重启服务: docker-compose restart"
+if [ "$mode" = "3" ]; then
+    echo "  查看应用状态: docker-compose -f docker-compose.app.yml ps"
+    echo "  查看应用日志: docker-compose -f docker-compose.app.yml logs -f"
+    echo "  停止应用: docker-compose -f docker-compose.app.yml down"
+    echo "  重启应用: docker-compose -f docker-compose.app.yml restart"
+else
+    echo "  查看服务状态: docker-compose ps"
+    echo "  查看日志: docker-compose logs -f"
+    echo "  停止服务: docker-compose down"
+    echo "  重启服务: docker-compose restart"
+fi
 echo ""
-echo "⚠️  注意：如果这是第一次运行，数据库迁移可能需要一些时间"
+if [ "$mode" = "3" ]; then
+    echo "⚠️  注意：确保数据库已启动且可以访问。如果这是第一次运行，请先运行其他模式来初始化数据库。"
+else
+    echo "⚠️  注意：如果这是第一次运行，数据库迁移可能需要一些时间"
+fi
