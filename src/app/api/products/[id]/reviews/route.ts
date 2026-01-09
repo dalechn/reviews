@@ -6,6 +6,20 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // During build time, return empty data to avoid database connection
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('dummy')) {
+      return NextResponse.json({
+        reviews: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+        },
+        averageRating: 0,
+      })
+    }
+
     const { id } = await params
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')

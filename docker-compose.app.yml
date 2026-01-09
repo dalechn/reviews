@@ -7,6 +7,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://admin:46647451@localhost:5432/shopify_reviews  # 连接到本地的数据库
+      DATABASE_URL: postgresql://admin:46647451@host.docker.internal:5432/shopify_reviews  # 运行时连接到宿主机的数据库
       NODE_ENV: production
     command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start"

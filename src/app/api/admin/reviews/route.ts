@@ -3,6 +3,19 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    // During build time, return empty data to avoid database connection
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('dummy')) {
+      return NextResponse.json({
+        reviews: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          pages: 0,
+        },
+      })
+    }
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
