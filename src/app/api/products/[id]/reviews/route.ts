@@ -154,7 +154,7 @@ export async function POST(
         rating: review.rating,
         title: review.title || '',
         content: review.content,
-        mediaUrls: review.mediaUrls || [],
+        reviewId: review.id,
       })
       console.log('📧 Review notification email sent successfully')
     } catch (emailError) {
