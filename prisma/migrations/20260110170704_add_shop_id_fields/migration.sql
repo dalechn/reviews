@@ -1,16 +1,19 @@
--- Set default shopId for existing data
-UPDATE "customers" SET "shopId" = 'default-shop' WHERE "shopId" IS NULL;
-UPDATE "products" SET "shopId" = 'default-shop' WHERE "shopId" IS NULL;
-UPDATE "reviews" SET "shopId" = 'default-shop' WHERE "shopId" IS NULL;
+/*
+  Warnings:
+
+  - Added the required column `shopId` to the `customers` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `shopId` to the `products` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `shopId` to the `reviews` table without a default value. This is not possible if the table is not empty.
+
+*/
+-- AlterTable
+ALTER TABLE "customers" ADD COLUMN     "shopId" TEXT NOT NULL;
 
 -- AlterTable
-ALTER TABLE "customers" ADD COLUMN     "shopId" TEXT NOT NULL DEFAULT 'default-shop';
+ALTER TABLE "products" ADD COLUMN     "shopId" TEXT NOT NULL;
 
 -- AlterTable
-ALTER TABLE "products" ADD COLUMN     "shopId" TEXT NOT NULL DEFAULT 'default-shop';
-
--- AlterTable
-ALTER TABLE "reviews" ADD COLUMN     "shopId" TEXT NOT NULL DEFAULT 'default-shop';
+ALTER TABLE "reviews" ADD COLUMN     "shopId" TEXT NOT NULL;
 
 -- CreateIndex
 CREATE INDEX "customers_shopId_idx" ON "customers"("shopId");

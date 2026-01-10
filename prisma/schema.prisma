@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,62 +6,59 @@ datasource db {
   provider = "postgresql"
 }
 
-// Product model for Shopify products
 model Product {
-  id          String   @id @default(cuid())
-  shopifyId   String   @unique // Shopify product ID
-  shopId      String   // Shopify shop ID for multi-tenant support
-  title       String
-  handle      String   @unique
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  shopifyId     String   @unique
+  title         String
+  handle        String   @unique
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  shopId        String
+  averageRating Decimal? @db.Decimal(3, 2)
+  ratingStats   Json?
+  reviewCount   Int      @default(0)
+  reviews       Review[]
 
-  reviews     Review[]
-
-  @@map("products")
   @@index([shopId])
+  @@map("products")
 }
 
-// Customer model for Shopify customers
 model Customer {
   id        String   @id @default(cuid())
-  shopifyId String   @unique // Shopify customer ID
-  shopId    String   // Shopify shop ID for multi-tenant support
+  shopifyId String   @unique
   email     String?
   firstName String?
   lastName  String?
   avatarUrl String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  shopId    String
   reviews   Review[]
 
-  @@map("customers")
   @@index([shopId])
+  @@map("customers")
 }
 
-// Review model for product reviews
 model Review {
-  id          String   @id @default(cuid())
-  shopId      String   // Shopify shop ID for multi-tenant support
-  productId   String
-  customerId  String
-  rating      Int      // 1-5 star rating
-  title       String?
-  content     String
-  mediaUrls   String[] // Array of uploaded media URLs (images/videos)
-  verified    Boolean  @default(false) // Verified purchase
-  published   Boolean  @default(true)
-  helpful     Int      @default(0) // Number of helpful votes
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  productId  String
+  customerId String
+  rating     Int
+  title      String?
+  content    String
+  verified   Boolean  @default(false)
+  published  Boolean  @default(true)
+  helpful    Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  mediaUrls  String[]
+  shopId     String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@map("reviews")
   @@index([shopId])
   @@index([shopId, published])
   @@index([shopId, createdAt])
+  @@map("reviews")
 }

@@ -77,6 +77,15 @@ export async function GET(
       take: limit,
     })
 
+    // 转换产品中的 Decimal 类型为 number
+    const formattedReviews = reviews.map(review => ({
+      ...review,
+      product: {
+        ...review.product,
+        averageRating: review.product.averageRating ? Number(review.product.averageRating) : null,
+      },
+    }))
+
     const total = await prisma.review.count({
       where: whereCondition,
     })
@@ -89,7 +98,7 @@ export async function GET(
     })
 
     return NextResponse.json({
-      reviews,
+      reviews: formattedReviews,
       pagination: {
         page,
         limit,
@@ -190,8 +199,28 @@ export async function POST(
       console.warn('⚠️  Review created successfully, but email notification queue failed. Email will not be sent.')
     }
 
-    
-    return NextResponse.json(review, { status: 201 })
+    // 异步更新产品评分统计
+    console.log('📊 Adding rating calculation job to queue...')
+    try {
+      await queues.ratingCalculation.add('update-product-rating', {
+        productId: id,
+      })
+      console.log('📊 Rating calculation job queued successfully')
+    } catch (queueError) {
+      console.error('📊 Failed to queue rating calculation job:', queueError instanceof Error ? queueError.message : String(queueError))
+      console.warn('⚠️  Review created successfully, but rating calculation queue failed. Rating stats may be outdated.')
+    }
+
+    // 转换产品中的 Decimal 类型为 number
+    const formattedReview = {
+      ...review,
+      product: {
+        ...review.product,
+        averageRating: review.product.averageRating ? Number(review.product.averageRating) : null,
+      },
+    }
+
+    return NextResponse.json(formattedReview, { status: 201 })
   } catch (error) {
     console.error('Error creating review:', error)
     return NextResponse.json(

@@ -16,6 +16,7 @@ export const redis = new Redis(redisConfig)
 export const QUEUE_NAMES = {
   REVIEW_NOTIFICATIONS: 'review-notifications',
   EMAIL_PROCESSING: 'email-processing',
+  RATING_CALCULATION: 'rating-calculation', // 新增评分计算队列
 } as const
 
 // 创建队列实例
@@ -44,6 +45,18 @@ export const queues = {
       },
     },
   }),
+  ratingCalculation: new Queue(QUEUE_NAMES.RATING_CALCULATION, { // 新增评分计算队列
+    connection: redisConfig,
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 20,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  }),
 }
 
 // 队列事件监听器
@@ -54,6 +67,9 @@ export const queueEvents = {
   emailProcessing: new QueueEvents(QUEUE_NAMES.EMAIL_PROCESSING, {
     connection: redisConfig,
   }),
+  ratingCalculation: new QueueEvents(QUEUE_NAMES.RATING_CALCULATION, { // 新增事件监听器
+    connection: redisConfig,
+  }),
 }
 
 // 关闭所有队列连接
@@ -62,6 +78,7 @@ export async function closeQueues() {
     await Promise.all([
       queues.reviewNotifications.close(),
       queues.emailProcessing.close(),
+      queues.ratingCalculation.close(), // 新增
       redis.quit(),
     ])
     console.log('✅ All queues closed successfully')
@@ -79,6 +96,7 @@ export async function checkQueueHealth() {
       queues: {
         reviewNotifications: await queues.reviewNotifications.getWaiting(),
         emailProcessing: await queues.emailProcessing.getWaiting(),
+        ratingCalculation: await queues.ratingCalculation.getWaiting(), // 新增
       },
     }
   } catch (error) {

@@ -30,7 +30,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(product)
+    // 转换 Decimal 类型为 number
+    const formattedProduct = {
+      ...product,
+      averageRating: product.averageRating ? Number(product.averageRating) : null,
+    }
+
+    return NextResponse.json(formattedProduct)
   } catch (error) {
     console.error('Error fetching product:', error)
     return NextResponse.json(
@@ -71,7 +77,13 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json(product, { status: 201 })
+      // 转换 Decimal 类型为 number
+      const formattedProduct = {
+        ...product,
+        averageRating: product.averageRating ? Number(product.averageRating) : null,
+      }
+
+      return NextResponse.json(formattedProduct, { status: 201 })
     } catch (error) {
       // If upsert fails due to handle conflict, try to find existing product by handle
       // and update its shopifyId
@@ -91,7 +103,13 @@ export async function POST(request: NextRequest) {
               shopId,
             },
           })
-          return NextResponse.json(updatedProduct, { status: 200 })
+          // 转换 Decimal 类型为 number
+          const formattedUpdatedProduct = {
+            ...updatedProduct,
+            averageRating: updatedProduct.averageRating ? Number(updatedProduct.averageRating) : null,
+          }
+
+          return NextResponse.json(formattedUpdatedProduct, { status: 200 })
         }
       }
 
