@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+function addCorsHeaders(response: NextResponse) {
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+  return response
+}
+
+export async function OPTIONS() {
+  return addCorsHeaders(new NextResponse(null, { status: 200 }))
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,10 +22,10 @@ export async function PUT(
     const { rating, title, content, published, hideReason, mediaUrls } = body
 
     if (rating && (rating < 1 || rating > 5)) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Rating must be between 1 and 5' },
         { status: 400 }
-      )
+      ))
     }
 
     const review = await prisma.review.update({
@@ -45,19 +56,19 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(review)
+    return addCorsHeaders(NextResponse.json(review))
   } catch (error) {
     console.error('Error updating review:', error)
     if ((error as any).code === 'P2025') {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Review not found' },
         { status: 404 }
-      )
+      ))
     }
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Failed to update review' },
       { status: 500 }
-    )
+    ))
   }
 }
 
@@ -71,19 +82,19 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ message: 'Review deleted successfully' })
+    return addCorsHeaders(NextResponse.json({ message: 'Review deleted successfully' }))
   } catch (error) {
     console.error('Error deleting review:', error)
     if ((error as any).code === 'P2025') {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Review not found' },
         { status: 404 }
-      )
+      ))
     }
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Failed to delete review' },
       { status: 500 }
-    )
+    ))
   }
 }
 
@@ -105,18 +116,18 @@ export async function PATCH(
           },
         },
       })
-      return NextResponse.json(review)
+      return addCorsHeaders(NextResponse.json(review))
     }
 
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Invalid action' },
       { status: 400 }
-    )
+    ))
   } catch (error) {
     console.error('Error updating review helpful count:', error)
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Failed to update review' },
       { status: 500 }
-    )
+    ))
   }
 }

@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+function addCorsHeaders(response: NextResponse) {
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+  return response
+}
+
+export async function OPTIONS() {
+  return addCorsHeaders(new NextResponse(null, { status: 200 }))
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -8,10 +19,10 @@ export async function GET(request: NextRequest) {
     const shopId = searchParams.get('shopId')
 
     if (!shopifyId) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Shopify ID is required' },
         { status: 400 }
-      )
+      ))
     }
 
     // 如果提供了shopId，则按shopId和shopifyId一起查找，否则只按shopifyId查找
@@ -24,10 +35,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!product) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
-      )
+      ))
     }
 
     // 转换 Decimal 类型为 number
@@ -36,13 +47,13 @@ export async function GET(request: NextRequest) {
       averageRating: product.averageRating ? Number(product.averageRating) : null,
     }
 
-    return NextResponse.json(formattedProduct)
+    return addCorsHeaders(NextResponse.json(formattedProduct))
   } catch (error) {
     console.error('Error fetching product:', error)
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Failed to fetch product' },
       { status: 500 }
-    )
+    ))
   }
 }
 
@@ -52,10 +63,10 @@ export async function POST(request: NextRequest) {
     const { shopifyId, title, handle, imageUrl, shopId } = body
 
     if (!shopifyId || !title || !handle || !shopId) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Shopify ID, title, handle, and shopId are required' },
         { status: 400 }
-      )
+      ))
     }
 
     // First, try to upsert normally
@@ -83,7 +94,7 @@ export async function POST(request: NextRequest) {
         averageRating: product.averageRating ? Number(product.averageRating) : null,
       }
 
-      return NextResponse.json(formattedProduct, { status: 201 })
+      return addCorsHeaders(NextResponse.json(formattedProduct, { status: 201 }))
     } catch (error) {
       // If upsert fails due to handle conflict, try to find existing product by handle
       // and update its shopifyId
@@ -109,7 +120,7 @@ export async function POST(request: NextRequest) {
             averageRating: updatedProduct.averageRating ? Number(updatedProduct.averageRating) : null,
           }
 
-          return NextResponse.json(formattedUpdatedProduct, { status: 200 })
+          return addCorsHeaders(NextResponse.json(formattedUpdatedProduct, { status: 200 }))
         }
       }
 
@@ -119,14 +130,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating/updating product:', error)
     if ((error as any).code === 'P2002') {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: 'Product with this handle already exists and could not be updated' },
         { status: 409 }
-      )
+      ))
     }
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: 'Failed to create/update product' },
       { status: 500 }
-    )
+    ))
   }
 }
