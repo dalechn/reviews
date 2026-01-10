@@ -13,6 +13,7 @@ datasource db {
 model Product {
   id          String   @id @default(cuid())
   shopifyId   String   @unique // Shopify product ID
+  shopId      String   // Shopify shop ID for multi-tenant support
   title       String
   handle      String   @unique
   imageUrl    String?
@@ -22,12 +23,14 @@ model Product {
   reviews     Review[]
 
   @@map("products")
+  @@index([shopId])
 }
 
 // Customer model for Shopify customers
 model Customer {
   id        String   @id @default(cuid())
   shopifyId String   @unique // Shopify customer ID
+  shopId    String   // Shopify shop ID for multi-tenant support
   email     String?
   firstName String?
   lastName  String?
@@ -38,11 +41,13 @@ model Customer {
   reviews   Review[]
 
   @@map("customers")
+  @@index([shopId])
 }
 
 // Review model for product reviews
 model Review {
   id          String   @id @default(cuid())
+  shopId      String   // Shopify shop ID for multi-tenant support
   productId   String
   customerId  String
   rating      Int      // 1-5 star rating
@@ -59,4 +64,7 @@ model Review {
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@map("reviews")
+  @@index([shopId])
+  @@index([shopId, published])
+  @@index([shopId, createdAt])
 }

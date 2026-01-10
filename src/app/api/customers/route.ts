@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { shopifyId, email, firstName, lastName, avatarUrl } = body
+    const { shopifyId, email, firstName, lastName, avatarUrl, shopId } = body
 
-    if (!shopifyId) {
+    if (!shopifyId || !shopId) {
       return NextResponse.json(
-        { error: 'Shopify ID is required' },
+        { error: 'Shopify ID and shopId are required' },
         { status: 400 }
       )
     }
@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         avatarUrl,
+        shopId,
       },
       create: {
         shopifyId,
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         avatarUrl,
+        shopId,
       },
     })
 

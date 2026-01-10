@@ -27,37 +27,61 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '10')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
 
     const skip = (page - 1) * limit
 
+    // 验证排序字段
+    const validSortFields = ['createdAt', 'rating', 'customer.firstName', 'title']
+    const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const actualSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
+
+    // 构建查询条件
+    const whereCondition: any = {
+      productId: id,
+      published: true,
+    }
+
+    // 添加时间范围筛选
+    if (startDate || endDate) {
+      whereCondition.createdAt = {}
+      if (startDate) {
+        whereCondition.createdAt.gte = new Date(startDate)
+      }
+      if (endDate) {
+        // 设置结束日期为当天的23:59:59
+        const endOfDay = new Date(endDate)
+        endOfDay.setHours(23, 59, 59, 999)
+        whereCondition.createdAt.lte = endOfDay
+      }
+    }
+
     const reviews = await prisma.review.findMany({
-      where: {
-        productId: id,
-        published: true,
-      },
+      where: whereCondition,
       include: {
         customer: true, // Include all customer fields
         product: true,  // Include all product fields
       },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
+      orderBy: actualSortBy.includes('customer.') || actualSortBy.includes('product.')
+        ? {
+            [actualSortBy.split('.')[0]]: {
+              [actualSortBy.split('.')[1]]: actualSortOrder,
+            },
+          }
+        : {
+            [actualSortBy]: actualSortOrder,
+          },
       skip,
       take: limit,
     })
 
     const total = await prisma.review.count({
-      where: {
-        productId: id,
-        published: true,
-      },
+      where: whereCondition,
     })
 
     const averageRating = await prisma.review.aggregate({
-      where: {
-        productId: id,
-        published: true,
-      },
+      where: whereCondition,
       _avg: {
         rating: true,
       },
@@ -117,7 +141,7 @@ export async function POST(
       )
     }
 
-    // Check if product exists
+    // Check if product exists and get shopId
     const product = await prisma.product.findUnique({
       where: { id },
     })
@@ -133,6 +157,7 @@ export async function POST(
       data: {
         productId: id,
         customerId,
+        shopId: product.shopId,
         rating,
         title,
         content,

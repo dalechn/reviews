@@ -21,13 +21,42 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const shopId = searchParams.get('shopId') // 新增：商店ID参数
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
 
     const skip = (page - 1) * limit
 
+    // 验证排序字段
+    const validSortFields = ['createdAt', 'rating', 'customer.firstName', 'product.title', 'title']
+    const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const actualSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
+
+    // 构建查询条件
+    const whereCondition: any = {
+      published: true,
+    }
+
+    if (shopId) {
+      whereCondition.shopId = shopId // 只返回指定商店的评论
+    }
+
+    // 添加时间范围筛选
+    if (startDate || endDate) {
+      whereCondition.createdAt = {}
+      if (startDate) {
+        whereCondition.createdAt.gte = new Date(startDate)
+      }
+      if (endDate) {
+        // 设置结束日期为当天的23:59:59
+        const endOfDay = new Date(endDate)
+        endOfDay.setHours(23, 59, 59, 999)
+        whereCondition.createdAt.lte = endOfDay
+      }
+    }
+
     const reviews = await prisma.review.findMany({
-      where: {
-        published: true,
-      },
+      where: whereCondition,
       include: {
         customer: {
           select: {
@@ -53,17 +82,21 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
+      orderBy: actualSortBy.includes('customer.') || actualSortBy.includes('product.')
+        ? {
+            [actualSortBy.split('.')[0]]: {
+              [actualSortBy.split('.')[1]]: actualSortOrder,
+            },
+          }
+        : {
+            [actualSortBy]: actualSortOrder,
+          },
       skip,
       take: limit,
     })
 
     const total = await prisma.review.count({
-      where: {
-        published: true,
-      },
+      where: whereCondition,
     })
 
     return NextResponse.json({

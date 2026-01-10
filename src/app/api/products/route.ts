@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const shopifyId = searchParams.get('shopifyId')
+    const shopId = searchParams.get('shopId')
 
     if (!shopifyId) {
       return NextResponse.json(
@@ -13,8 +14,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const product = await prisma.product.findUnique({
-      where: { shopifyId },
+    // 如果提供了shopId，则按shopId和shopifyId一起查找，否则只按shopifyId查找
+    const whereClause = shopId
+      ? { shopifyId, shopId }
+      : { shopifyId }
+
+    const product = await prisma.product.findFirst({
+      where: whereClause,
     })
 
     if (!product) {
@@ -37,11 +43,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { shopifyId, title, handle, imageUrl } = body
+    const { shopifyId, title, handle, imageUrl, shopId } = body
 
-    if (!shopifyId || !title || !handle) {
+    if (!shopifyId || !title || !handle || !shopId) {
       return NextResponse.json(
-        { error: 'Shopify ID, title, and handle are required' },
+        { error: 'Shopify ID, title, handle, and shopId are required' },
         { status: 400 }
       )
     }
@@ -54,12 +60,14 @@ export async function POST(request: NextRequest) {
           title,
           handle,
           imageUrl,
+          shopId,
         },
         create: {
           shopifyId,
           title,
           handle,
           imageUrl,
+          shopId,
         },
       })
 
@@ -80,6 +88,7 @@ export async function POST(request: NextRequest) {
               shopifyId,
               title,
               imageUrl,
+              shopId,
             },
           })
           return NextResponse.json(updatedProduct, { status: 200 })
