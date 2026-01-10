@@ -48,6 +48,7 @@ model Review {
   rating      Int      // 1-5 star rating
   title       String?
   content     String
+  mediaUrls   String[] // Array of uploaded media URLs (images/videos)
   verified    Boolean  @default(false) // Verified purchase
   published   Boolean  @default(true)
   helpful     Int      @default(0) // Number of helpful votes

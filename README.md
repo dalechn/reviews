@@ -401,3 +401,5 @@ DATABASE_SSL=false
 ## 许可证
 
 本项目基于 MIT 许可证开源。
+
+docker-compose -f docker-compose.app.yml up -d --build

@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const shopifyId = searchParams.get('shopifyId')
+
+    if (!shopifyId) {
+      return NextResponse.json(
+        { error: 'Shopify ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { shopifyId },
+    })
+
+    if (!product) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Error fetching product:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch product' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -13,27 +46,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const product = await prisma.product.upsert({
-      where: { shopifyId },
-      update: {
-        title,
-        handle,
-        imageUrl,
-      },
-      create: {
-        shopifyId,
-        title,
-        handle,
-        imageUrl,
-      },
-    })
+    // First, try to upsert normally
+    try {
+      const product = await prisma.product.upsert({
+        where: { shopifyId },
+        update: {
+          title,
+          handle,
+          imageUrl,
+        },
+        create: {
+          shopifyId,
+          title,
+          handle,
+          imageUrl,
+        },
+      })
 
-    return NextResponse.json(product, { status: 201 })
+      return NextResponse.json(product, { status: 201 })
+    } catch (error) {
+      // If upsert fails due to handle conflict, try to find existing product by handle
+      // and update its shopifyId
+      if ((error as any).code === 'P2002') {
+        const existingProduct = await prisma.product.findUnique({
+          where: { handle },
+        })
+
+        if (existingProduct) {
+          // Update the existing product with new shopifyId and other fields
+          const updatedProduct = await prisma.product.update({
+            where: { id: existingProduct.id },
+            data: {
+              shopifyId,
+              title,
+              imageUrl,
+            },
+          })
+          return NextResponse.json(updatedProduct, { status: 200 })
+        }
+      }
+
+      // Re-throw if it's not a handle conflict or no existing product found
+      throw error
+    }
   } catch (error) {
     console.error('Error creating/updating product:', error)
     if ((error as any).code === 'P2002') {
       return NextResponse.json(
-        { error: 'Product with this handle already exists' },
+        { error: 'Product with this handle already exists and could not be updated' },
         { status: 409 }
       )
     }

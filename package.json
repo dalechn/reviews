@@ -9,23 +9,32 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.713.0",
     "@builder.io/react": "^9.1.0",
     "@builder.io/sdk": "^6.2.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
+    "@types/nodemailer": "^7.0.4",
+    "lucide-react": "^0.460.0",
+    "multer": "^1.4.5-lts.1",
     "next": "16.1.1",
+    "nodemailer": "^7.0.12",
     "pg": "^8.16.3",
     "prisma": "^7.2.0",
     "react": "19.2.3",
     "react-bricks": "^5.0.0",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-player": "^2.16.0",
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/multer": "^1.4.12",
     "@types/node": "^20",
     "@types/pg": "^8.11.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",

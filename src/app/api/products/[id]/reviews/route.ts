@@ -35,13 +35,8 @@ export async function GET(
         published: true,
       },
       include: {
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
+        customer: true, // Include all customer fields
+        product: true,  // Include all product fields
       },
       orderBy: {
         [sortBy]: sortOrder,
@@ -93,7 +88,7 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
-    const { customerId, rating, title, content, verified } = body
+    const { customerId, rating, title, content, mediaUrls, verified } = body
 
     if (!customerId || !rating || !content) {
       return NextResponse.json(
@@ -140,16 +135,12 @@ export async function POST(
         rating,
         title,
         content,
+        mediaUrls: mediaUrls || [],
         verified: verified || false,
       },
       include: {
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
+        customer: true, // Include all customer fields
+        product: true,  // Include all product fields
       },
     })
 
