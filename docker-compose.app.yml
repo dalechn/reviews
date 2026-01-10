@@ -30,9 +30,9 @@ services:
 
       SMTP_HOST: smtp.mailersend.net
       SMTP_PORT: "587"
-      SMTP_USER: MS_Nr5JC8@frenmap.fun
-      SMTP_PASS: mssp.hnfZ5b7.pq3enl6pqxrg2vwr.jy4i6fQ
-      SMTP_FROM: MS_Nr5JC8@frenmap.fun
+      SMTP_USER: MS_UMJD8w@test-69oxl5ey56dl785k.mlsender.net
+      SMTP_PASS: mssp.ERcWGaD.jy7zpl9pwnpg5vx6.wsGFKij
+      SMTP_FROM: MS_UMJD8w@test-69oxl5ey56dl785k.mlsender.net
       ADMIN_EMAIL: dalechnpig@gmail.com
       NEXT_PUBLIC_APP_URL: https://frenmap.fun
 
