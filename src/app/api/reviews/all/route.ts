@@ -32,10 +32,8 @@ export async function GET(request: NextRequest) {
     const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
     const actualSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
 
-    // 构建查询条件
-    const whereCondition: any = {
-      published: true,
-    }
+    // 构建查询条件 - 管理界面需要显示所有评论（包括隐藏的）
+    const whereCondition: any = {}
 
     if (shopId) {
       whereCondition.shopId = shopId // 只返回指定商店的评论

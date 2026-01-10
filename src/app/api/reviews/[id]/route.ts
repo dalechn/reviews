@@ -8,7 +8,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { rating, title, content, published } = body
+    const { rating, title, content, published, hideReason, mediaUrls } = body
 
     if (rating && (rating < 1 || rating > 5)) {
       return NextResponse.json(
@@ -24,6 +24,8 @@ export async function PUT(
         ...(title !== undefined && { title }),
         ...(content !== undefined && { content }),
         ...(published !== undefined && { published }),
+        ...(hideReason !== undefined && { hideReason }),
+        ...(mediaUrls !== undefined && { mediaUrls }),
         updatedAt: new Date(),
       },
       include: {

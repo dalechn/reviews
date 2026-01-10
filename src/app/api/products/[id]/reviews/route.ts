@@ -38,10 +38,9 @@ export async function GET(
     const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
     const actualSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
 
-    // 构建查询条件
+    // 构建查询条件 - 管理界面需要显示所有评论（包括隐藏的）
     const whereCondition: any = {
       productId: id,
-      published: true,
     }
 
     // 添加时间范围筛选
