@@ -163,6 +163,7 @@ export async function POST(
       console.warn('⚠️  Review created successfully, but email notification failed. Please check SMTP configuration.')
     }
 
+    
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
     console.error('Error creating review:', error)

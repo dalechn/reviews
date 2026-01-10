@@ -55,6 +55,7 @@ class EmailService {
     }
   }
 
+  
   // 辅助函数：生成媒体文件HTML
   private generateMediaHtml(mediaUrls: string[]): string {
     if (!mediaUrls || mediaUrls.length === 0) {
