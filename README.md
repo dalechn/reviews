@@ -352,7 +352,83 @@ DATABASE_URL="postgresql://username:password@host:5432/database?sslmode=require"
 
 # 生产环境标识
 NODE_ENV=production
+
+# SMTP配置（用于新评论邮件通知）
+SMTP_HOST=smtp.mailersend.net
+SMTP_PORT=587
+SMTP_USER=MS_tQXWD1@test-y7zpl9831j545vx6.mlsender.net
+SMTP_PASS=mssp.Ff5rIcZ.k68zxl25q9mlj905.FPe3zsd
+SMTP_FROM=MS_tQXWD1@test-y7zpl9831j545vx6.mlsender.net
+ADMIN_EMAIL=your-admin-email@example.com
+NEXT_PUBLIC_APP_URL=https://your-domain.com
 ```
+
+#### SMTP邮件通知说明
+
+邮件会发送到 `ADMIN_EMAIL` 指定的邮箱，如果未设置则发送到 SMTP 用户名对应的域名管理员邮箱。
+
+##### 测试邮件功能
+
+**方法1：运行测试脚本**
+```bash
+# 直接运行测试脚本（自动使用环境变量或默认MailerSend配置）
+node test-email.mjs
+```
+
+或者设置环境变量后运行：
+```bash
+SMTP_HOST=smtp.mailersend.net \
+SMTP_PORT=587 \
+SMTP_USER=MS_tQXWD1@test-y7zpl9831j545vx6.mlsender.net \
+SMTP_PASS=mssp.Ff5rIcZ.k68zxl25q9mlj905.FPe3zsd \
+node test-email.mjs
+```
+
+测试脚本会验证SMTP连接并发送测试邮件。
+
+**方法2：通过创建评论测试**
+1. 确保环境变量已正确配置
+2. 重启应用服务器
+3. 通过API创建一个测试评论来触发邮件发送
+
+**方法3：查看应用日志**
+创建评论后，查看终端日志：
+- `📧 Sending review notification email...` - 开始发送
+- `✅ Email sent successfully to: xxx` - 发送成功
+- `❌ Failed to send email to: xxx` - 发送失败
+
+**方法4：开发模式邮件模拟**
+如果网络问题无法解决，可以使用邮件模拟模式：
+
+1. **创建 `.env.local` 文件**（如果不存在）：
+   ```env
+   # 开发环境 - 启用邮件模拟模式
+   # 注释掉SMTP配置以启用模拟模式
+   # SMTP_HOST=smtp.mailersend.net
+   # SMTP_PORT=587
+   # SMTP_USER=MS_tQXWD1@test-y7zpl9831j545vx6.mlsender.net
+   # SMTP_PASS=mssp.Ff5rIcZ.k68zxl25q9mlj905.FPe3zsd
+
+   # 设置管理员邮箱
+   ADMIN_EMAIL=your-admin-email@example.com
+   ```
+
+2. **重启开发服务器**
+
+3. **创建评论测试** - 控制台会显示完整的邮件内容预览
+
+##### SMTP故障排除
+
+常见错误及解决方法：
+
+- **`Unexpected socket close`** → 检查网络连接或尝试端口2525
+- **`Authentication failed`** → 确认用户名和密码正确
+- **`Connection timeout`** → 检查防火墙设置
+
+MailerSend配置要点：
+- 使用端口 `587` 或 `2525`
+- 确保 STARTTLS 启用（secure: false）
+- 确认用户名格式正确
 
 #### SSL配置说明
 

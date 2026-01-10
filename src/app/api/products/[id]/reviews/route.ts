@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import emailService from '@/lib/email'
 
 export async function GET(
   request: NextRequest,
@@ -143,6 +144,24 @@ export async function POST(
         product: true,  // Include all product fields
       },
     })
+
+    // 发送新评论通知邮件
+    console.log('📧 Sending review notification email...')
+    try {
+      await emailService.sendNewReviewNotification({
+        customerName: `${review.customer.firstName} ${review.customer.lastName}`,
+        productTitle: review.product.title,
+        rating: review.rating,
+        title: review.title || '',
+        content: review.content,
+        reviewId: review.id,
+      })
+      console.log('📧 Review notification email sent successfully')
+    } catch (emailError) {
+      console.error('📧 Failed to send review notification email:', emailError instanceof Error ? emailError.message : String(emailError))
+      // 不影响评论创建的成功响应，只记录错误
+      console.warn('⚠️  Review created successfully, but email notification failed. Please check SMTP configuration.')
+    }
 
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
