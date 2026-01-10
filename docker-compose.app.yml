@@ -33,7 +33,7 @@ services:
       SMTP_USER: MS_Nr5JC8@frenmap.fun
       SMTP_PASS: mssp.hnfZ5b7.pq3enl6pqxrg2vwr.jy4i6fQ
       SMTP_FROM: MS_Nr5JC8@frenmap.fun
-      ADMIN_EMAIL: 1499144360@qq.com
+      ADMIN_EMAIL: dalechnpig@gmail.com
       NEXT_PUBLIC_APP_URL: https://frenmap.fun
 
       AWS_ACCESS_KEY_ID: "d90013cbe8093bed5ad1ee1c239f5a2a"
