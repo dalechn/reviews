@@ -147,6 +147,7 @@ export default function Home() {
           firstName: 'John',
           lastName: 'Doe',
           avatarUrl: 'https://example.com/avatar.jpg',
+          shopId: 'default-shop',
         }),
       });
 
@@ -177,6 +178,7 @@ export default function Home() {
             title: `Test Product (${testProductId})`,
             handle: testProductId,
             imageUrl: 'https://example.com/product.jpg',
+            shopId: 'default-shop',
           }),
         });
 

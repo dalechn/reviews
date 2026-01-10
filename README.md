@@ -9,6 +9,8 @@
 - **TypeScript** - 类型安全的JavaScript
 - **PostgreSQL** - 关系型数据库
 - **Prisma** - 数据库ORM和迁移工具
+- **Redis** - 消息队列和高性能缓存
+- **BullMQ** - Redis-based消息队列
 - **Tailwind CSS 4** - 实用优先的CSS框架
 - **ESLint** - 代码质量检查
 
@@ -37,9 +39,17 @@ firstnext/
 npm install
 ```
 
-### 2. 数据库设置
+### 2. 数据库和消息队列设置
 
-#### 🚀 快速设置（推荐）- 使用Docker + PostgreSQL
+#### 🚀 快速设置（推荐）- 使用Docker + PostgreSQL + Redis
+
+**消息队列特性：**
+- ⚡ **异步评论发布** - 评论创建后立即响应，邮件发送异步处理
+- 📧 **可靠邮件通知** - 失败自动重试，保证邮件送达
+- 🔄 **高并发处理** - 支持同时处理多个评论请求
+- 📊 **作业监控** - 实时监控队列状态和处理进度
+
+快速启动包含完整应用栈（PostgreSQL + Redis）：
 
 ##### 启动完整应用栈（推荐）
 
@@ -163,11 +173,21 @@ npx prisma migrate dev
 npx prisma generate
 ```
 
-### 5. 启动开发服务器
+### 5. 启动开发服务器和队列工作器
 
 ```bash
+# 终端1: 启动Next.js开发服务器
 npm run dev
+
+# 终端2: 启动队列工作器（处理异步任务）
+npm run worker:dev
 ```
+
+**队列工作器功能：**
+- 📧 处理评论邮件通知
+- 🔄 自动重试失败的任务
+- 📊 实时监控队列状态
+- ⚡ 高并发作业处理
 
 ### 6. 创建测试数据（可选）
 
@@ -200,9 +220,21 @@ VALUES ('test-product-1', 'test-product-1', '测试产品', 'test-product', NOW(
 ### 6. 构建生产版本
 
 ```bash
+# 构建Next.js应用
 npm run build
+
+# 启动生产应用（需要Redis运行）
 npm start
+
+# 在另一个终端启动队列工作器
+npm run worker
 ```
+
+**生产环境部署注意事项：**
+- 🔴 **Redis必须运行** - 队列工作器依赖Redis
+- 📋 **多进程部署** - 建议使用PM2等进程管理器
+- ⚖️ **负载均衡** - 多个工作器实例提高可靠性
+- 📊 **监控告警** - 设置队列积压和失败任务告警
 
 ### 7. 代码检查
 

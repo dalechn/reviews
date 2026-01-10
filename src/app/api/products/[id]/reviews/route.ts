@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import emailService from '@/lib/email'
+import { queues } from '@/lib/queue'
 
 export async function GET(
   request: NextRequest,
@@ -170,22 +171,23 @@ export async function POST(
       },
     })
 
-    // 发送新评论通知邮件
-    console.log('📧 Sending review notification email...')
+    // 异步发送新评论通知邮件（通过消息队列）
+    console.log('📧 Adding review notification email to queue...')
     try {
-      await emailService.sendNewReviewNotification({
+      await queues.reviewNotifications.add('new-review-notification', {
         customerName: `${review.customer.firstName} ${review.customer.lastName}`,
         productTitle: review.product.title,
         rating: review.rating,
         title: review.title || '',
         content: review.content,
         mediaUrls: review.mediaUrls || [],
+        reviewId: review.id,
       })
-      console.log('📧 Review notification email sent successfully')
-    } catch (emailError) {
-      console.error('📧 Failed to send review notification email:', emailError instanceof Error ? emailError.message : String(emailError))
+      console.log('📧 Review notification email queued successfully')
+    } catch (queueError) {
+      console.error('📧 Failed to queue review notification email:', queueError instanceof Error ? queueError.message : String(queueError))
       // 不影响评论创建的成功响应，只记录错误
-      console.warn('⚠️  Review created successfully, but email notification failed. Please check SMTP configuration.')
+      console.warn('⚠️  Review created successfully, but email notification queue failed. Email will not be sent.')
     }
 
     

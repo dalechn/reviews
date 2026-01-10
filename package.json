@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "worker": "tsx src/worker.ts",
+    "worker:dev": "tsx watch src/worker.ts",
     "lint": "eslint"
   },
   "dependencies": {
@@ -14,7 +16,10 @@
     "@builder.io/sdk": "^6.2.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
+    "@types/ioredis": "^5.0.0",
     "@types/nodemailer": "^7.0.4",
+    "bullmq": "^5.17.1",
+    "ioredis": "^5.4.1",
     "lucide-react": "^0.460.0",
     "multer": "^1.4.5-lts.1",
     "next": "16.1.1",
@@ -25,6 +30,7 @@
     "react-bricks": "^5.0.0",
     "react-dom": "19.2.3",
     "react-player": "^2.16.0",
+    "tsx": "^4.19.1",
     "uuid": "^11.0.3"
   },
   "devDependencies": {

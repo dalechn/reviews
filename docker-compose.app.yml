@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes
+
   app:
     build:
       context: .
@@ -26,6 +41,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       NODE_ENV: production
 
       SMTP_HOST: smtp.mailersend.net
@@ -44,7 +61,41 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NODE_ENV: production
+
+      SMTP_HOST: smtp.mailersend.net
+      SMTP_PORT: "587"
+      SMTP_USER: MS_UMJD8w@test-69oxl5ey56dl785k.mlsender.net
+      SMTP_PASS: mssp.ERcWGaD.jy7zpl9pwnpg5vx6.wsGFKij
+      SMTP_FROM: MS_UMJD8w@test-69oxl5ey56dl785k.mlsender.net
+      ADMIN_EMAIL: dalechnpig@gmail.com
+      NEXT_PUBLIC_APP_URL: https://frenmap.fun
+
+      AWS_ACCESS_KEY_ID: "d90013cbe8093bed5ad1ee1c239f5a2a"
+      AWS_SECRET_ACCESS_KEY: "341e9a9c9a08ebbfa6d148f9e85df43d8f89ccd0459f5bc2aca5fa9d337de6a8"
+      AWS_REGION: "auto"
+      AWS_S3_BUCKET_NAME: "review"
+      AWS_S3_CUSTOM_DOMAIN: "https://img.frenmap.fun"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run worker
 
 volumes:
   postgres_data:
+  redis_data:
