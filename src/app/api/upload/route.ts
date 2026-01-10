@@ -2,17 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 import { v4 as uuidv4 } from 'uuid'
 
-function addCorsHeaders(response: NextResponse) {
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-  return response
-}
-
-export async function OPTIONS() {
-  return addCorsHeaders(new NextResponse(null, { status: 200 }))
-}
-
 // Cloudflare R2 配置
 const R2_ACCESS_KEY_ID = 'd90013cbe8093bed5ad1ee1c239f5a2a'
 const R2_SECRET_ACCESS_KEY = '341e9a9c9a08ebbfa6d148f9e85df43d8f89ccd0459f5bc2aca5fa9d337de6a8'
@@ -37,38 +26,38 @@ export async function POST(request: NextRequest) {
       const headBucketCommand = new HeadBucketCommand({ Bucket: R2_BUCKET_NAME })
       await s3Client.send(headBucketCommand)
     } catch (error) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: `Bucket '${R2_BUCKET_NAME}' does not exist or is not accessible. Please create the bucket in Cloudflare R2 and set it to public access.` },
         { status: 500 }
-      ))
+      )
     }
 
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
-      ))
+      )
     }
 
     // 验证文件类型
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg']
     if (!allowedTypes.includes(file.type)) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'Invalid file type. Only images and videos are allowed.' },
         { status: 400 }
-      ))
+      )
     }
 
     // 验证文件大小 (最大 50MB)
     const maxSize = 50 * 1024 * 1024 // 50MB
     if (file.size > maxSize) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'File size too large. Maximum size is 50MB.' },
         { status: 400 }
-      ))
+      )
     }
 
     // 生成唯一文件名
@@ -94,19 +83,19 @@ export async function POST(request: NextRequest) {
     // 生成公开访问URL
     const fileUrl = `${R2_CUSTOM_DOMAIN}/${fileName}`
 
-    return addCorsHeaders(NextResponse.json({
+    return NextResponse.json({
       success: true,
       url: fileUrl,
       fileName,
       fileType: file.type,
       fileSize: file.size,
-    }))
+    })
 
   } catch (error) {
     console.error('Error uploading file:', error)
-    return addCorsHeaders(NextResponse.json(
+    return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }
-    ))
+    )
   }
 }

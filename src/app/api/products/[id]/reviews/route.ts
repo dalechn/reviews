@@ -3,17 +3,6 @@ import { prisma } from '@/lib/prisma'
 import emailService from '@/lib/email'
 import { queues } from '@/lib/queue'
 
-function addCorsHeaders(response: NextResponse) {
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-  return response
-}
-
-export async function OPTIONS() {
-  return addCorsHeaders(new NextResponse(null, { status: 200 }))
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,7 +10,7 @@ export async function GET(
   try {
     // During build time, return empty data to avoid database connection
     if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('dummy')) {
-      return addCorsHeaders(NextResponse.json({
+      return NextResponse.json({
         reviews: [],
         pagination: {
           page: 1,
@@ -30,7 +19,7 @@ export async function GET(
           pages: 0,
         },
         averageRating: 0,
-      }))
+      })
     }
 
     const { id } = await params
@@ -107,7 +96,7 @@ export async function GET(
       },
     })
 
-    return addCorsHeaders(NextResponse.json({
+    return NextResponse.json({
       reviews: formattedReviews,
       pagination: {
         page,
@@ -116,13 +105,13 @@ export async function GET(
         pages: Math.ceil(total / limit),
       },
       averageRating: averageRating._avg.rating || 0,
-    }))
+    })
   } catch (error) {
     console.error('Error fetching reviews:', error)
-    return addCorsHeaders(NextResponse.json(
+    return NextResponse.json(
       { error: 'Failed to fetch reviews' },
       { status: 500 }
-    ))
+    )
   }
 }
 
@@ -136,17 +125,17 @@ export async function POST(
     const { customerId, rating, title, content, mediaUrls, verified } = body
 
     if (!customerId || !rating || !content) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
-      ))
+      )
     }
 
     if (rating < 1 || rating > 5) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'Rating must be between 1 and 5' },
         { status: 400 }
-      ))
+      )
     }
 
     // Check if customer exists
@@ -155,10 +144,10 @@ export async function POST(
     })
 
     if (!customer) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
-      ))
+      )
     }
 
     // Check if product exists and get shopId
@@ -167,10 +156,10 @@ export async function POST(
     })
 
     if (!product) {
-      return addCorsHeaders(NextResponse.json(
+      return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
-      ))
+      )
     }
 
     const review = await prisma.review.create({
@@ -230,12 +219,12 @@ export async function POST(
       },
     }
 
-    return addCorsHeaders(NextResponse.json(formattedReview, { status: 201 }))
+    return NextResponse.json(formattedReview, { status: 201 })
   } catch (error) {
     console.error('Error creating review:', error)
-    return addCorsHeaders(NextResponse.json(
+    return NextResponse.json(
       { error: 'Failed to create review' },
       { status: 500 }
-    ))
+    )
   }
 }
