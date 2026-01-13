@@ -49,13 +49,11 @@ export async function POST(request: NextRequest) {
       'image/bmp', 'image/svg+xml', 'image/tiff', 'image/heic', 'image/heif',
       // 视频格式
       'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov',
-      'video/mkv', 'video/flv', 'video/wmv', 'video/3gpp', 'video/quicktime',
-      // 音频格式
-      'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/webm'
+      'video/mkv', 'video/flv', 'video/wmv', 'video/3gpp', 'video/quicktime'
     ]
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only images, videos, and audio files are allowed.' },
+        { error: 'Invalid file type. Only images and videos are allowed.' },
         { status: 400 }
       )
     }
