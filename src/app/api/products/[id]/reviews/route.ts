@@ -122,7 +122,7 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
-    const { customerId, author, email, rating, title, content, mediaUrls, verified } = body
+    const { customerId, author, email, rating, title, content, mediaUrls, verified, productData } = body
 
     // Validate required fields - 支持访客用户（customerId可选）
     if (!rating || !content) {
@@ -159,13 +159,35 @@ export async function POST(
     }
 
     // Check if product exists and get shopId
-    const product = await prisma.product.findUnique({
+    let product = await prisma.product.findUnique({
       where: { id },
     })
 
+    // If product doesn't exist and we have productData, try to create it
+    if (!product && productData) {
+      try {
+        product = await prisma.product.create({
+          data: {
+            shopifyId: productData.shopifyId || id,
+            title: productData.title,
+            handle: productData.handle,
+            imageUrl: productData.imageUrl,
+            shopId: productData.shopId,
+          },
+        })
+        console.log('Product auto-created:', product.id)
+      } catch (createError) {
+        console.error('Failed to auto-create product:', createError)
+        return NextResponse.json(
+          { error: 'Product not found and could not be created automatically' },
+          { status: 404 }
+        )
+      }
+    }
+
     if (!product) {
       return NextResponse.json(
-        { error: 'Product not found' },
+        { error: 'Product not found. Please ensure the product is synced to the database first.' },
         { status: 404 }
       )
     }
