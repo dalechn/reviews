@@ -38,9 +38,28 @@ export async function GET(
     const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
     const actualSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
 
-    // 构建查询条件 - 管理界面需要显示所有评论（包括隐藏的）
+    // 先通过shopifyId找到产品，获取数据库ID
+    const product = await prisma.product.findFirst({
+      where: { shopifyId: id },
+    })
+
+    if (!product) {
+      console.log('Product not found for shopifyId:', id)
+      return NextResponse.json({
+        reviews: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          pages: 0,
+        },
+        averageRating: 0,
+      })
+    }
+
+    // 构建查询条件 - 使用数据库产品ID查找评论
     const whereCondition: any = {
-      productId: id,
+      productId: product.id, // 使用数据库产品ID
     }
 
     // 添加时间范围筛选
@@ -124,6 +143,8 @@ export async function POST(
     const body = await request.json()
     const { customerId, author, email, rating, title, content, mediaUrls, verified, productData } = body
 
+    console.log('Received review request:', { customerId, author, email, rating, content, productData, id })
+
     // Validate required fields - 支持访客用户（customerId可选）
     if (!rating || !content) {
       return NextResponse.json(
@@ -159,13 +180,16 @@ export async function POST(
     }
 
     // Check if product exists and get shopId
-    let product = await prisma.product.findUnique({
-      where: { id },
+    let product = await prisma.product.findFirst({
+      where: { shopifyId: id },
     })
+
+    console.log('Product lookup result for shopifyId:', id, product ? 'FOUND' : 'NOT FOUND')
 
     // If product doesn't exist and we have productData, try to create it
     if (!product && productData) {
       try {
+        console.log('Attempting to auto-create product with data:', productData)
         product = await prisma.product.create({
           data: {
             shopifyId: productData.shopifyId || id,
@@ -175,11 +199,12 @@ export async function POST(
             shopId: productData.shopId,
           },
         })
-        console.log('Product auto-created:', product.id)
-      } catch (createError) {
+        console.log('Product auto-created with ID:', product.id, 'and shopifyId:', product.shopifyId)
+      } catch (createError: any) {
         console.error('Failed to auto-create product:', createError)
+        console.error('Product data received:', productData)
         return NextResponse.json(
-          { error: 'Product not found and could not be created automatically' },
+          { error: `Product not found and could not be created automatically: ${createError?.message || 'Unknown error'}` },
           { status: 404 }
         )
       }
@@ -197,15 +222,15 @@ export async function POST(
     if (customerId) {
       // Use existing customer
       customer = await prisma.customer.findUnique({
-        where: { id: customerId },
-      })
+      where: { id: customerId },
+    })
 
-      if (!customer) {
-        return NextResponse.json(
-          { error: 'Customer not found' },
-          { status: 404 }
-        )
-      }
+    if (!customer) {
+      return NextResponse.json(
+        { error: 'Customer not found' },
+        { status: 404 }
+      )
+    }
     } else {
       // Handle guest customer
       // Try to find existing customer by email and shop
@@ -214,13 +239,13 @@ export async function POST(
           email: email,
           shopId: product.shopId,
         },
-      })
+    })
 
       if (!customer) {
         // Create new guest customer
         customer = await prisma.customer.create({
           data: {
-            shopifyId: null, // Guest customer
+            shopifyId: null as any, // Guest customer
             email: email,
             firstName: author.split(' ')[0] || author,
             lastName: author.split(' ').slice(1).join(' ') || '',
@@ -232,7 +257,7 @@ export async function POST(
 
     const review = await prisma.review.create({
       data: {
-        productId: id,
+        productId: product.id,
         customerId: customer.id,
         shopId: product.shopId,
         rating,
@@ -288,7 +313,7 @@ export async function POST(
     console.log('📊 Adding rating calculation job to queue...')
     try {
       await queues.ratingCalculation.add('update-product-rating', {
-        productId: id,
+        productId: product.id,
       })
       console.log('📊 Rating calculation job queued successfully')
     } catch (queueError) {
