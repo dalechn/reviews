@@ -122,11 +122,20 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
-    const { customerId, rating, title, content, mediaUrls, verified } = body
+    const { customerId, author, email, rating, title, content, mediaUrls, verified } = body
 
-    if (!customerId || !rating || !content) {
+    // Validate required fields - 支持访客用户（customerId可选）
+    if (!rating || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: rating and content are required' },
+        { status: 400 }
+      )
+    }
+
+    // 如果是访客用户，需要提供author和email
+    if (!customerId && (!author || !email)) {
+      return NextResponse.json(
+        { error: 'Missing required fields: author and email are required for guest reviews' },
         { status: 400 }
       )
     }
@@ -138,16 +147,15 @@ export async function POST(
       )
     }
 
-    // Check if customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-    })
-
-    if (!customer) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 404 }
-      )
+    // Validate email format for guest users
+    if (!customerId && email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        return NextResponse.json(
+          { error: 'Invalid email format' },
+          { status: 400 }
+        )
+      }
     }
 
     // Check if product exists and get shopId
@@ -162,20 +170,75 @@ export async function POST(
       )
     }
 
+    let customer
+
+    if (customerId) {
+      // Use existing customer
+      customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+      })
+
+      if (!customer) {
+        return NextResponse.json(
+          { error: 'Customer not found' },
+          { status: 404 }
+        )
+      }
+    } else {
+      // Handle guest customer
+      // Try to find existing customer by email and shop
+      customer = await prisma.customer.findFirst({
+        where: {
+          email: email,
+          shopId: product.shopId,
+        },
+      })
+
+      if (!customer) {
+        // Create new guest customer
+        customer = await prisma.customer.create({
+          data: {
+            shopifyId: null, // Guest customer
+            email: email,
+            firstName: author.split(' ')[0] || author,
+            lastName: author.split(' ').slice(1).join(' ') || '',
+            shopId: product.shopId,
+          },
+        })
+      }
+    }
+
     const review = await prisma.review.create({
       data: {
         productId: id,
-        customerId,
+        customerId: customer.id,
         shopId: product.shopId,
         rating,
-        title,
+        title: title || null,
         content,
         mediaUrls: mediaUrls || [],
-        verified: verified || false,
+        verified: customerId ? (verified || false) : false, // Guest reviews are not verified
       },
       include: {
-        customer: true, // Include all customer fields
-        product: true,  // Include all product fields
+        customer: {
+          select: {
+            id: true,
+            shopifyId: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
+        },
+        product: {
+          select: {
+            id: true,
+            shopifyId: true,
+            title: true,
+            handle: true,
+            imageUrl: true,
+          },
+        },
       },
     })
 
