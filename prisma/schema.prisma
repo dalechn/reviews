@@ -26,7 +26,7 @@ model Product {
 
 model Customer {
   id        String   @id @default(cuid())
-  shopifyId String   @unique
+  shopifyId String?  @unique
   email     String?
   firstName String?
   lastName  String?
