@@ -237,6 +237,7 @@ export async function POST(
             title: true,
             handle: true,
             imageUrl: true,
+            averageRating: true,
           },
         },
       },
