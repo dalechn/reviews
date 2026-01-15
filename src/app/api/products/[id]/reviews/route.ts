@@ -248,7 +248,7 @@ export async function POST(
             shopifyId: null as any, // Guest customer
             email: email,
             firstName: author.split(' ')[0] || author,
-            lastName: author.split(' ').slice(1).join(' ') || '',
+            // lastName: author.split(' ').slice(1).join(' ') || '',
             shopId: product.shopId,
           },
         })
