@@ -28,7 +28,7 @@ model Product {
 model Customer {
   id        String   @id @default(cuid())
   shopifyId String?  @unique
-  email     String?
+  email     String
   firstName String?
   lastName  String?
   avatarUrl String?
@@ -38,6 +38,7 @@ model Customer {
   reviews   Review[]
 
   @@index([shopId])
+  @@unique([email, shopId]) // Email unique within each shop
   @@map("customers")
 }
 

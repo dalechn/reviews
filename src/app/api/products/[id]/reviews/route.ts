@@ -159,20 +159,12 @@ export async function POST(
     const body = await request.json()
     const { customerId, author, email, rating, title, content, mediaUrls, verified, productData } = body
 
-    console.log('Received review request:', { customerId, author, email, rating, content, productData, id })
+    console.log('Received review request:', { author, email, rating, content, productData, id })
 
-    // Validate required fields - 支持访客用户（customerId可选）
-    if (!rating || !content) {
+    // Validate required fields - author and email are always required
+    if (!rating || !content || !author || !email) {
       return NextResponse.json(
-        { error: 'Missing required fields: rating and content are required' },
-        { status: 400 }
-      )
-    }
-
-    // 如果是访客用户，需要提供author和email
-    if (!customerId && (!author || !email)) {
-      return NextResponse.json(
-        { error: 'Missing required fields: author and email are required for guest reviews' },
+        { error: 'Missing required fields: rating, content, author, and email are required' },
         { status: 400 }
       )
     }
@@ -184,15 +176,13 @@ export async function POST(
       )
     }
 
-    // Validate email format for guest users
-    if (!customerId && email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        return NextResponse.json(
-          { error: 'Invalid email format' },
-          { status: 400 }
-        )
-      }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
     }
 
     // Check if product exists and get shopId
@@ -233,39 +223,43 @@ export async function POST(
       )
     }
 
-    let customer
-
-    if (customerId) {
-      // Use existing customer
-      customer = await prisma.customer.findUnique({
-      where: { id: customerId },
+    // Find or create customer by email
+    let customer = await prisma.customer.findFirst({
+      where: {
+        email: email,
+        shopId: product.shopId,
+      },
     })
 
     if (!customer) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 404 }
-      )
-    }
-    } else {
-      // Handle guest customer
-      // Try to find existing customer by email and shop
-      customer = await prisma.customer.findFirst({
-        where: {
-          email: email,
-          shopId: product.shopId,
-        },
-    })
-
-      if (!customer) {
-        // Create new guest customer
+      // Create new customer
+      try {
         customer = await prisma.customer.create({
           data: {
-            shopifyId: null as any, // Guest customer
+            shopifyId: customerId || null, // Optional Shopify ID for logged-in users
             email: email,
             firstName: author.split(' ')[0] || author,
-            // lastName: author.split(' ').slice(1).join(' ') || '',
+            lastName: author.split(' ').slice(1).join(' ') || null,
             shopId: product.shopId,
+          },
+        })
+        console.log('Customer created with email:', email, 'database ID:', customer.id)
+      } catch (createError: any) {
+        console.error('Failed to create customer:', createError)
+        return NextResponse.json(
+          { error: `Failed to create customer: ${createError?.message || 'Unknown error'}` },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Update customer name if it's different (in case they updated their name)
+      if (customer.firstName !== (author.split(' ')[0] || author) ||
+          customer.lastName !== (author.split(' ').slice(1).join(' ') || null)) {
+        customer = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            firstName: author.split(' ')[0] || author,
+            lastName: author.split(' ').slice(1).join(' ') || null,
           },
         })
       }
@@ -284,7 +278,7 @@ export async function POST(
         content,
         mediaUrls: mediaUrls || [], // 保留向后兼容性
         media: media.length > 0 ? (media as any) : null, // 新字段
-        verified: customerId ? (verified || false) : false, // Guest reviews are not verified
+        verified: verified || false, // Verification status can be set externally if needed
       } as any,
       include: {
         customer: {
