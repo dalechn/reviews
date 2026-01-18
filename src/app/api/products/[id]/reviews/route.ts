@@ -238,7 +238,7 @@ export async function POST(
           data: {
             shopifyId: customerId || null, // Optional Shopify ID for logged-in users
             email: email,
-            firstName: author.split(' ')[0] || author,
+            firstName:author,
             // lastName: author.split(' ').slice(1).join(' ') || null,
             shopId: product.shopId,
           },
@@ -258,7 +258,7 @@ export async function POST(
         customer = await prisma.customer.update({
           where: { id: customer.id },
           data: {
-            firstName: author.split(' ')[0] || author,
+            firstName: author,
             // lastName: author.split(' ').slice(1).join(' ') || null,
           },
         })
