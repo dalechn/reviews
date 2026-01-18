@@ -259,7 +259,7 @@ export async function POST(
           where: { id: customer.id },
           data: {
             firstName: author.split(' ')[0] || author,
-            lastName: author.split(' ').slice(1).join(' ') || null,
+            // lastName: author.split(' ').slice(1).join(' ') || null,
           },
         })
       }
