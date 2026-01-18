@@ -239,7 +239,7 @@ export async function POST(
             shopifyId: customerId || null, // Optional Shopify ID for logged-in users
             email: email,
             firstName: author.split(' ')[0] || author,
-            lastName: author.split(' ').slice(1).join(' ') || null,
+            // lastName: author.split(' ').slice(1).join(' ') || null,
             shopId: product.shopId,
           },
         })
