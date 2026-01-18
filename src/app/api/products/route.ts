@@ -89,7 +89,12 @@ export async function POST(request: NextRequest) {
       // and update its shopifyId
       if ((error as any).code === 'P2002') {
         const existingProduct = await prisma.product.findUnique({
-          where: { handle },
+          where: {
+            shopId_handle: {
+              shopId,
+              handle,
+            },
+          },
         })
 
         if (existingProduct) {

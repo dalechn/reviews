@@ -1,8 +1,22 @@
 # Use Node.js 22 Alpine as the base image
 FROM node:22-alpine
 
-# Install Python and build tools for native dependencies
-RUN apk add --no-cache python3 py3-pip make g++
+# Install system dependencies
+RUN apk update && apk add --no-cache \
+    python3 \
+    py3-pip \
+    make \
+    g++ \
+    ffmpeg \
+    build-base \
+    && rm -rf /var/cache/apk/*
+
+# Set working directory
+WORKDIR /app
+
+# Install Node.js dependencies
+COPY package*.json ./
+RUN npm install
 
 # Set working directory
 WORKDIR /app

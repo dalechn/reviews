@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 import { v4 as uuidv4 } from 'uuid'
+import { queues } from '@/lib/queue'
 
 // Cloudflare R2 配置
-const R2_ACCESS_KEY_ID = 'd90013cbe8093bed5ad1ee1c239f5a2a'
-const R2_SECRET_ACCESS_KEY = '341e9a9c9a08ebbfa6d148f9e85df43d8f89ccd0459f5bc2aca5fa9d337de6a8'
-const R2_ACCOUNT_ID = '90c92d63facae1160b45024cfa9de08d'
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || 'd90013cbe8093bed5ad1ee1c239f5a2a'
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '341e9a9c9a08ebbfa6d148f9e85df43d8f89ccd0459f5bc2aca5fa9d337de6a8'
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '90c92d63facae1160b45024cfa9de08d'
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'review'
 const R2_CUSTOM_DOMAIN = process.env.R2_CUSTOM_DOMAIN || 'https://img.frenmap.fun'
 
@@ -21,6 +22,7 @@ const s3Client = new S3Client({
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
     // 检查bucket是否存在
     try {
       const headBucketCommand = new HeadBucketCommand({ Bucket: R2_BUCKET_NAME })
@@ -90,12 +92,36 @@ export async function POST(request: NextRequest) {
     // 生成公开访问URL
     const fileUrl = `${R2_CUSTOM_DOMAIN}/${fileName}`
 
+    // 检查是否为视频文件
+    const isVideo = file.type.startsWith('video/')
+
+    // 如果是视频，添加到缩略图生成队列
+    if (isVideo) {
+      console.log(`🎥 Video uploaded: ${fileName}, adding thumbnail generation to queue`)
+
+      // 从请求中获取reviewId（如果有的话）
+      const reviewId = searchParams.get('reviewId')
+
+      try {
+        await queues.videoThumbnail.add('generate-video-thumbnail', {
+          videoUrl: fileUrl,
+          reviewId: reviewId || null,
+          fileName,
+        })
+        console.log(`✅ Video thumbnail generation queued for ${fileName}`)
+      } catch (queueError) {
+        console.error(`❌ Failed to queue video thumbnail generation for ${fileName}:`, queueError)
+        // 不影响文件上传的成功响应，只记录错误
+      }
+    }
+
     return NextResponse.json({
       success: true,
       url: fileUrl,
       fileName,
       fileType: file.type,
       fileSize: file.size,
+      isVideo,
     })
 
   } catch (error) {

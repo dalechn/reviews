@@ -3,6 +3,22 @@ import { prisma } from '@/lib/prisma'
 import emailService from '@/lib/email'
 import { queues } from '@/lib/queue'
 
+// 辅助函数：转换媒体URL为媒体对象
+function convertMediaUrlsToMedia(mediaUrls: string[]): any[] {
+  if (!mediaUrls || mediaUrls.length === 0) return []
+
+  return mediaUrls.map(url => {
+    // 检查是否为视频（简单检查URL中的文件扩展名）
+    const isVideo = /\.(mp4|webm|ogg|avi|mov|mkv|flv|wmv|3gpp|quicktime)$/i.test(url)
+
+    return {
+      type: isVideo ? 'video' : 'image',
+      url,
+      thumbnailUrl: isVideo ? null : undefined, // 视频会异步生成缩略图
+    }
+  })
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -255,6 +271,9 @@ export async function POST(
       }
     }
 
+    // 转换媒体URL为新的媒体结构
+    const media = convertMediaUrlsToMedia(mediaUrls || [])
+
     const review = await prisma.review.create({
       data: {
         productId: product.id,
@@ -263,9 +282,10 @@ export async function POST(
         rating,
         title: title || null,
         content,
-        mediaUrls: mediaUrls || [],
+        mediaUrls: mediaUrls || [], // 保留向后兼容性
+        media: media.length > 0 ? (media as any) : null, // 新字段
         verified: customerId ? (verified || false) : false, // Guest reviews are not verified
-      },
+      } as any,
       include: {
         customer: {
           select: {
@@ -294,8 +314,8 @@ export async function POST(
     console.log('📧 Adding review notification email to queue...')
     try {
       await queues.reviewNotifications.add('new-review-notification', {
-        customerName: `${review.customer.firstName} ${review.customer.lastName}`,
-        productTitle: review.product.title,
+        customerName: `${(review as any).customer.firstName} ${(review as any).customer.lastName || ''}`.trim(),
+        productTitle: (review as any).product.title,
         rating: review.rating,
         title: review.title || '',
         content: review.content,
@@ -307,6 +327,33 @@ export async function POST(
       console.error('📧 Failed to queue review notification email:', queueError instanceof Error ? queueError.message : String(queueError))
       // 不影响评论创建的成功响应，只记录错误
       console.warn('⚠️  Review created successfully, but email notification queue failed. Email will not be sent.')
+    }
+
+    // 检查是否有视频需要生成缩略图，更新videoThumbnail队列中的reviewId
+    if (media && media.some(item => item.type === 'video')) {
+      console.log('🎥 Review contains videos, updating thumbnail generation jobs with reviewId')
+      try {
+        // 这里可以添加逻辑来更新已经存在的视频缩略图任务，设置正确的reviewId
+        // 由于上传API可能在review创建之前就被调用，我们需要在上传时传递reviewId
+        // 或者在这里重新添加缩略图生成任务
+        const videoUrls = media.filter(item => item.type === 'video').map(item => item.url)
+
+        // 为每个视频重新添加缩略图生成任务（带reviewId）
+        for (const videoUrl of videoUrls) {
+          // 从URL中提取文件名
+          const urlParts = videoUrl.split('/')
+          const fileName = urlParts[urlParts.length - 1]
+
+          await queues.videoThumbnail.add('generate-video-thumbnail', {
+            videoUrl,
+            reviewId: review.id,
+            fileName,
+          })
+        }
+        console.log(`✅ Re-queued ${videoUrls.length} video thumbnail generation jobs with reviewId`)
+      } catch (queueError) {
+        console.error('🎥 Failed to re-queue video thumbnail generation jobs:', queueError)
+      }
     }
 
     // 异步更新产品评分统计

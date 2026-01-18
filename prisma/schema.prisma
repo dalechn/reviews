@@ -10,7 +10,7 @@ model Product {
   id            String   @id @default(cuid())
   shopifyId     String   @unique
   title         String
-  handle        String   @unique
+  handle        String
   imageUrl      String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -21,6 +21,7 @@ model Product {
   reviews       Review[]
 
   @@index([shopId])
+  @@unique([shopId, handle])
   @@map("products")
 }
 
@@ -53,7 +54,8 @@ model Review {
   helpful    Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  mediaUrls  String[]
+  mediaUrls  String[] // 保留向后兼容性
+  media      Json?    // 新字段：媒体对象数组，包含类型、URL、缩略图等信息
   shopId     String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)

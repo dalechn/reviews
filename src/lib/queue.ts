@@ -17,6 +17,7 @@ export const QUEUE_NAMES = {
   REVIEW_NOTIFICATIONS: 'review-notifications',
   EMAIL_PROCESSING: 'email-processing',
   RATING_CALCULATION: 'rating-calculation', // 新增评分计算队列
+  VIDEO_THUMBNAIL: 'video-thumbnail', // 新增视频缩略图生成队列
 } as const
 
 // 创建队列实例
@@ -57,6 +58,18 @@ export const queues = {
       },
     },
   }),
+  videoThumbnail: new Queue(QUEUE_NAMES.VIDEO_THUMBNAIL, { // 新增视频缩略图生成队列
+    connection: redisConfig,
+    defaultJobOptions: {
+      removeOnComplete: 10,
+      removeOnFail: 20,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+    },
+  }),
 }
 
 // 队列事件监听器
@@ -70,6 +83,9 @@ export const queueEvents = {
   ratingCalculation: new QueueEvents(QUEUE_NAMES.RATING_CALCULATION, { // 新增事件监听器
     connection: redisConfig,
   }),
+  videoThumbnail: new QueueEvents(QUEUE_NAMES.VIDEO_THUMBNAIL, { // 新增视频缩略图事件监听器
+    connection: redisConfig,
+  }),
 }
 
 // 关闭所有队列连接
@@ -79,6 +95,7 @@ export async function closeQueues() {
       queues.reviewNotifications.close(),
       queues.emailProcessing.close(),
       queues.ratingCalculation.close(), // 新增
+      queues.videoThumbnail.close(), // 新增视频缩略图队列
       redis.quit(),
     ])
     console.log('✅ All queues closed successfully')
@@ -97,6 +114,7 @@ export async function checkQueueHealth() {
         reviewNotifications: await queues.reviewNotifications.getWaiting(),
         emailProcessing: await queues.emailProcessing.getWaiting(),
         ratingCalculation: await queues.ratingCalculation.getWaiting(), // 新增
+        videoThumbnail: await queues.videoThumbnail.getWaiting(), // 新增视频缩略图队列
       },
     }
   } catch (error) {
