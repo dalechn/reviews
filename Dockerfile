@@ -18,15 +18,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Set working directory
-WORKDIR /app
-
-# Install dependencies
-COPY package*.json ./
-RUN npm install
-
 # Copy source code
 COPY . .
+
+# Clean any existing build artifacts
+RUN rm -rf .next
 
 # Generate Prisma client
 RUN npx prisma generate
