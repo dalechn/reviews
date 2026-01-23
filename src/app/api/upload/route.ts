@@ -22,6 +22,28 @@ const s3Client = new S3Client({
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json()
+
+    // 检查是否是队列视频缩略图的请求
+    if (body.action === 'queue-video-thumbnail') {
+      const { videoUrl, fileName } = body
+
+      try {
+        await queues.videoThumbnail.add('generate-video-thumbnail', {
+          videoUrl: videoUrl,
+          fileName,
+        })
+        console.log(`✅ Video thumbnail generation queued for ${fileName}`)
+        return NextResponse.json({ success: true })
+      } catch (queueError) {
+        console.error(`❌ Failed to queue video thumbnail generation for ${fileName}:`, queueError)
+        return NextResponse.json(
+          { error: 'Failed to queue video thumbnail generation' },
+          { status: 500 }
+        )
+      }
+    }
+
     const { searchParams } = new URL(request.url)
     // 检查bucket是否存在
     try {

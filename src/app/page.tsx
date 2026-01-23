@@ -81,33 +81,75 @@ export default function Home() {
   };
 
   const uploadFile = async (file: File) => {
-    setUploading(true);
+    setUploading(true)
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
+      // 首先获取预签名 URL
+      const presignedResponse = await fetch('/api/upload/presigned-url', {
         method: 'POST',
-        body: formData,
-      });
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      })
 
-      if (response.ok) {
-        const data = await response.json();
-        setUploadedFiles(prev => [...prev, data.url]);
-        return data.url;
-      } else {
-        const error = await response.json();
-        alert(`上传失败: ${error.error}`);
-        return null;
+      if (!presignedResponse.ok) {
+        const error = await presignedResponse.json()
+        alert(`获取上传URL失败: ${error.error}`)
+        return null
       }
+
+      const { signedUrl, publicUrl, fileName, isVideo } = await presignedResponse.json()
+
+      // 使用预签名 URL 直接上传文件到 R2
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed with status ${uploadResponse.status}`)
+      }
+
+      // 如果是视频，添加到缩略图生成队列
+      if (isVideo) {
+        console.log(`🎥 Video uploaded: ${fileName}, adding thumbnail generation to queue`)
+
+        try {
+          await fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'queue-video-thumbnail',
+              videoUrl: publicUrl,
+              fileName,
+            }),
+          })
+          console.log(`✅ Video thumbnail generation queued for ${fileName}`)
+        } catch (queueError) {
+          console.error(`❌ Failed to queue video thumbnail generation for ${fileName}:`, queueError)
+          // 不影响文件上传的成功响应，只记录错误
+        }
+      }
+
+      setUploadedFiles(prev => [...prev, publicUrl])
+      return publicUrl
     } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('上传文件时出错');
-      return null;
+      console.error('Error uploading file:', error)
+      alert('上传文件时出错')
+      return null
     } finally {
-      setUploading(false);
+      setUploading(false)
     }
-  };
+  }
 
   const removeUploadedFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));

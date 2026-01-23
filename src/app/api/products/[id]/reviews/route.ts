@@ -40,14 +40,23 @@ export async function GET(
 
     const { id } = await params
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const pageParam = searchParams.get('page') || '1'
+    const limitParam = searchParams.get('limit') || '10'
+
+    // Validate and sanitize parameters
+    const page = Math.max(1, parseInt(pageParam) || 1)
+    const limit = Math.max(1, Math.min(100, parseInt(limitParam) || 10)) // Max 100 items per page
+
+    console.log('API params:', { pageParam, limitParam, page, limit })
+
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
     const skip = (page - 1) * limit
+
+    console.log('Calculated skip and limit:', { skip, limit, page })
 
     // 验证排序字段
     const validSortFields = ['createdAt', 'rating', 'customer.firstName', 'title']
@@ -92,6 +101,12 @@ export async function GET(
       }
     }
 
+    // Ensure skip and limit are valid numbers
+    const validSkip = isNaN(skip) ? 0 : Math.max(0, skip)
+    const validLimit = isNaN(limit) ? 10 : Math.max(1, Math.min(100, limit))
+
+    console.log('Prisma query params:', { validSkip, validLimit, actualSortBy, actualSortOrder })
+
     const reviews = await prisma.review.findMany({
       where: whereCondition,
       include: {
@@ -107,8 +122,8 @@ export async function GET(
         : {
             [actualSortBy]: actualSortOrder,
           },
-      skip,
-      take: limit,
+      skip: validSkip,
+      take: validLimit,
     })
 
     // 转换产品中的 Decimal 类型为 number
