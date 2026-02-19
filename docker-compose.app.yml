@@ -1,37 +1,4 @@
 services:
-  db:
-    image: postgres:17          # 想用其他版本就改成 16、15、14... 都可以
-    pull_policy: always
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: 46647451
-      POSTGRES_DB: shopify_reviews     # 自动创建这个数据库
-    ports:
-      - "5432:5432"             # 如果本机已有 postgres，可改成 5433:5432
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d shopify_reviews"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    pull_policy: always
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    command: redis-server --appendonly yes
-
   app:
     build:
       context: .
@@ -40,8 +7,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://farm_user:farm_password_2024@qq-farm-postgres:5432/shopify_reviews
+      REDIS_HOST: qq-farm-redis
       REDIS_PORT: "6379"
       NODE_ENV: production
 
@@ -59,12 +26,13 @@ services:
       R2_BUCKET_NAME: review
       R2_CUSTOM_DOMAIN: https://img.frenmap.fun
 
-  
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    networks:
+      - farm-network
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
     command: sh -c "npx prisma db push --accept-data-loss && npx prisma generate && npm run start"
 
   worker:
@@ -73,8 +41,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://admin:46647451@db:5432/shopify_reviews
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://farm_user:farm_password_2024@qq-farm-postgres:5432/shopify_reviews
+      REDIS_HOST: qq-farm-redis
       REDIS_PORT: "6379"
       NODE_ENV: production
 
@@ -93,13 +61,16 @@ services:
       R2_CUSTOM_DOMAIN: https://img.frenmap.fun
 
 
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    networks:
+      - farm-network
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
     command: npm run worker
 
-volumes:
-  postgres_data:
-  redis_data:
+networks:
+  farm-network:
+    external: true
+    name: farm-network

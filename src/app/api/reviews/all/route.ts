@@ -82,13 +82,13 @@ export async function GET(request: NextRequest) {
       },
       orderBy: actualSortBy.includes('customer.') || actualSortBy.includes('product.')
         ? {
-            [actualSortBy.split('.')[0]]: {
-              [actualSortBy.split('.')[1]]: actualSortOrder,
-            },
-          }
-        : {
-            [actualSortBy]: actualSortOrder,
+          [actualSortBy.split('.')[0]]: {
+            [actualSortBy.split('.')[1]]: actualSortOrder,
           },
+        }
+        : {
+          [actualSortBy]: actualSortOrder,
+        },
       skip,
       take: limit,
     })
